@@ -23,3 +23,8 @@
 
 # Vim temp files
 *.swp
+
+# Rust files
+target/
+**/*.rs.bk
+.repl_history
