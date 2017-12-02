@@ -27,4 +27,3 @@
 # Rust files
 target/
 **/*.rs.bk
-.repl_history
