@@ -30,9 +30,9 @@ pub fn load_lib(vm: &rlua::Lua, lib: &str) -> Result<(), String> {
         .call::<(), rlua::Table>(())
         .expect("Lua require failed");
 
-    Ok(vm.globals().set("inspect", llib).expect(
-        "failed to set library",
-    ))
+    Ok(vm.globals()
+        .set("inspect", llib)
+        .expect("failed to set library"))
 }
 
 #[cfg(test)]

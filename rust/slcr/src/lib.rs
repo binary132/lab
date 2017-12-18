@@ -1,9 +1,9 @@
 extern crate morpha;
 
-extern crate rustyline;
 extern crate includedir;
 extern crate phf;
 extern crate rlua;
+extern crate rustyline;
 
 mod lua;
 pub mod loader;

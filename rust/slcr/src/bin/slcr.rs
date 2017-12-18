@@ -2,8 +2,8 @@ extern crate slcr;
 
 extern crate morpha;
 
-extern crate rustyline;
 extern crate rlua;
+extern crate rustyline;
 
 use slcr::{loader, repl, MultiLine};
 use morpha::Morpha;

@@ -12,7 +12,7 @@ mod test {
 
         assert_eq!(
             Morpha::new().lex(Cursor::new(c)).next(),
-            Some(Lexeme::BlockOpen)
+            Some(Lexeme::Unknown)
         );
     }
 }

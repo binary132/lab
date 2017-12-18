@@ -1,6 +1,6 @@
 use super::MultiLine;
 
-use rlua::{Lua, MultiValue, Error};
+use rlua::{Error, Lua, MultiValue};
 use std::str;
 
 pub fn attempt_lua(some: &Lua, run: &str, next: u32) -> Result<MultiLine, String> {
@@ -20,14 +20,15 @@ pub fn attempt_lua(some: &Lua, run: &str, next: u32) -> Result<MultiLine, String
 
         // Syntax error.
         Err(Error::SyntaxError {
-                message: m,
-                incomplete_input: false,
-            }) => Ok(MultiLine::Done(format!("Lua syntax error: {}", m))),
+            message: m,
+            incomplete_input: false,
+        }) => Ok(MultiLine::Done(format!("Lua syntax error: {}", m))),
 
         // Syntax error because input is incomplete, ask for more.
-        Err(Error::SyntaxError { incomplete_input: true, .. }) => Ok(MultiLine::More(
-            String::from(run),
-        )),
+        Err(Error::SyntaxError {
+            incomplete_input: true,
+            ..
+        }) => Ok(MultiLine::More(String::from(run))),
 
         Err(Error::RuntimeError(e)) => Ok(MultiLine::Done(format!("{}", e))),
 

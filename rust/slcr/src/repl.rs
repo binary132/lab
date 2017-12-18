@@ -3,7 +3,7 @@ extern crate rustyline;
 
 use std::io::Cursor;
 
-use super::{MultiLine, lua};
+use super::{lua, MultiLine};
 
 use morpha::Morpha;
 
@@ -35,7 +35,6 @@ pub fn next(
     count: u32,
     was_lua: bool,
 ) -> (Result<MultiLine, String>, bool) {
-
     match line {
         // Got a line of input.
         Ok(line) => {
@@ -67,10 +66,9 @@ pub fn next(
                 // Try to evaluate what we have so far, but if it asks
                 // for more then finish up.
                 match lua::attempt_lua(&vm, accum, count) {
-                    Ok(MultiLine::More(_)) => (
-                        Ok(MultiLine::Done(String::from("incomplete input"))),
-                        false,
-                    ),
+                    Ok(MultiLine::More(_)) => {
+                        (Ok(MultiLine::Done(String::from("incomplete input"))), false)
+                    }
 
                     // Otherwise return whatever came back.
                     v => (v, false),
@@ -85,5 +83,13 @@ pub fn next(
 
         // Something went wrong.
         Err(error) => (Err(format!("Something went wrong: {}", error)), false),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_next() {
+        assert_eq!(2, 2);
     }
 }

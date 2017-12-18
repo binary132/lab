@@ -11,5 +11,5 @@ fn lex_test() {
     use lex::Lexeme;
 
     let c = Cursor::new(vec![0; 15]);
-    assert_eq!(Morpha::new().lex(c).next(), Some(Lexeme::BlockOpen));
+    assert_eq!(Morpha::new().lex(c).next(), Some(Lexeme::Unknown));
 }
