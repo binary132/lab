@@ -27,3 +27,6 @@
 # Rust files
 target/
 **/*.rs.bk
+
+# System metadata files
+.DS_Store
