@@ -9,7 +9,7 @@ mod lib_test;
 pub struct Morpha;
 
 impl Morpha {
-    pub fn new() -> Morpha {
+    pub fn new() -> Self {
         Morpha
     }
 

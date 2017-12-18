@@ -87,3 +87,11 @@ pub fn next(
         Err(error) => (Err(format!("Something went wrong: {}", error)), false),
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_next() {
+        assert_eq!(2, 2);
+    }
+}
