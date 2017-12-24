@@ -1,0 +1,6 @@
+[submodule "c/dep/munit"]
+	path = c/dep/munit
+	url = https://github.com/spartan-lang/munit
+[submodule "c/dep/sds"]
+	path = c/dep/sds
+	url = https://github.com/spartan-lang/sds

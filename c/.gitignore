@@ -1,0 +1,5 @@
+*~CMakeFiles
+CMakeCache.txt
+Testing
+build
+!build/.gitkeep
