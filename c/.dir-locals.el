@@ -1,1 +1,1 @@
-((nil . ((cmake-ide-build-dir . "build"))))
+((c-mode . ((cmake-ide-build-dir . "build"))))
