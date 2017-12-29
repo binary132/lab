@@ -1,6 +1,6 @@
 project(Spartan C)
 
-add_executable(lex_test lex_test.c)
+add_executable(lex_test main_test.h main_test.c lex_test.c)
 
 target_include_directories(lex_test PUBLIC
   ${lex_INCLUDE_DIR}
