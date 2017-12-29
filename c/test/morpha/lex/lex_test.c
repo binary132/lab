@@ -14,7 +14,7 @@ MunitResult test_sym_name(const MunitParameter params[],
 		bool        last;
 	} tests[] = { {
 		        .given  = -1,
-		        .expect = "unknown symbol",
+		        .expect = MLX_UNKNOWN_NAME,
 		      },
 		      {
 		        .given  = MLX_ERROR,
@@ -27,6 +27,14 @@ MunitResult test_sym_name(const MunitParameter params[],
 		      {
 		        .given  = MLX_BLOCK_CLOSE,
 		        .expect = MLX_BLOCK_CLOSE_NAME,
+		      },
+		      {
+		        .given  = MLX_SCALAR,
+		        .expect = MLX_SCALAR_NAME,
+		      },
+		      {
+		        .given  = MLX_NONE,
+		        .expect = MLX_NONE_NAME,
 		      },
 		      {
 		        .given  = MLX_SCALAR,
@@ -55,70 +63,90 @@ MunitResult test_sym_name(const MunitParameter params[],
 MunitResult test_sym_string(const MunitParameter params[],
                             void*                user_data_or_fixture) {
 	unsigned long long v = 12345;
-	char               buf[80];
 
 	struct {
 		char*       buf;
 		int         max;
 		MLX_lexeme  given;
 		const char* expect;
+		int         expect_len;
 		bool        last;
 	} tests[] = {
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = -1 },
-		  .expect = "unexpected lexeme kind (unknown symbol)",
+		  .max        = 1,
+		  .given      = (MLX_lexeme){ .kind = -1 },
+		  .expect_len = 39,
+		  .expect     = "",
 		},
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = MLX_ERROR },
-		  .expect = "",
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = -1 },
+		  .expect_len = 39,
+		  .expect     = "unexpected lexeme kind (unknown symbol)",
 		},
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = MLX_ERROR, .value = "oops" },
-		  .expect = "oops",
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = MLX_ERROR },
+		  .expect_len = 0,
+		  .expect     = "",
 		},
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = MLX_BLOCK_OPEN },
-		  .expect = "{",
+		  .max   = 4,
+		  .given = (MLX_lexeme){ .kind = MLX_ERROR, .value = "oops" },
+		  .expect_len = 4,
+		  .expect     = "oops",
 		},
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = MLX_BLOCK_CLOSE },
-		  .expect = "}",
+		  .max   = 80,
+		  .given = (MLX_lexeme){ .kind = MLX_ERROR, .value = "oops" },
+		  .expect_len = 4,
+		  .expect     = "oops",
 		},
 		{
-		  .buf    = buf,
-		  .max    = 80,
-		  .given  = (MLX_lexeme){ .kind = MLX_SCALAR, .value = &v },
-		  .expect = "[12345]",
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = MLX_BLOCK_OPEN },
+		  .expect_len = 1,
+		  .expect     = "{",
+		},
+		{
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = MLX_BLOCK_OPEN },
+		  .expect_len = 1,
+		  .expect     = "{",
+		},
+		{
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = MLX_BLOCK_CLOSE },
+		  .expect_len = 1,
+		  .expect     = "}",
+		},
+		{
+		  .max        = 80,
+		  .given      = (MLX_lexeme){ .kind = MLX_SCALAR, .value = &v },
+		  .expect_len = 5,
+		  .expect     = "12345",
 		},
 		{ .last = true }
 	};
 
 	for (int i = 0; !(tests[i].last); i++) {
-		MLX_kind    ek  = tests[i].given.kind;
-		const char* es  = tests[i].expect;
-		char*       tb  = tests[i].buf;
+		MLX_kind    ek = tests[i].given.kind;
+		const char* es = tests[i].expect;
+		char        tb[80];
 		int         tmx = tests[i].max;
+		int         el  = tests[i].expect_len;
 
 		memset(tb, '\0', 80);
-		munit_logf(MUNIT_LOG_INFO,
-		           "test %d: given %s(%s) expect \"%s\"", i,
-		           MLX_sym_name(ek), tests[i].given.value, es);
+		munit_logf(MUNIT_LOG_INFO, "test %d: given %s(%s)", i,
+		           MLX_sym_name(ek), (char*)tests[i].given.value);
+		munit_logf(MUNIT_LOG_INFO, "  expect \"%s\"[%d]", es, el);
 
 		int gotlen = MLX_sym_string(tb, tmx, tests[i].given);
 
 		munit_logf(MUNIT_LOG_INFO, "  got \"%s\"[%d]", tb, gotlen);
-		munit_assert_int(gotlen, ==, strlen(tests[i].expect));
-		munit_assert_memory_equal(gotlen, tb, tests[i].expect);
+		munit_assert_int(gotlen, ==, tests[i].expect_len);
+		munit_assert_memory_equal(strlen(tests[i].expect), tb,
+		                          tests[i].expect);
 	}
 
 	return MUNIT_OK;
@@ -128,21 +156,46 @@ MunitResult test_kind(const MunitParameter params[],
                       void*                user_data_or_fixture) {
 	struct {
 		char*   given;
-		int     max;
+		int     max, bufmax;
 		MLX_rsp expect;
 		bool    last;
 	} tests[] = {
 		{
-		  .given  = "{",
-		  .expect = (MLX_rsp){ .lex = { .kind = MLX_BLOCK_OPEN } },
+		  .given = "{",
+		  .max   = 1,
+		  .expect =
+		    (MLX_rsp){ .offset = 1, .lex = { .kind = MLX_BLOCK_OPEN } },
+		},
+		{
+		  .given = "{",
+		  .max   = 1,
+		  .expect =
+		    (MLX_rsp){ .offset = 1, .lex = { .kind = MLX_BLOCK_OPEN } },
 		},
 		{
 		  .given  = "}",
-		  .expect = (MLX_rsp){ .lex = { .kind = MLX_BLOCK_CLOSE } },
+		  .max    = 1,
+		  .expect = (MLX_rsp){ .offset = 1,
+		                       .lex    = { .kind = MLX_BLOCK_CLOSE } },
 		},
 		{
 		  .given  = "x",
-		  .expect = (MLX_rsp){ .lex =
+		  .max    = 1,
+		  .bufmax = 4,
+		  .expect = (MLX_rsp){ .consumed = 6,
+		                       .lex =
+		                         {
+		                           .kind  = MLX_NONE,
+		                           .value = "",
+		                           .size  = 6,
+		                         } },
+		},
+		{
+		  .given  = "x",
+		  .max    = 1,
+		  .bufmax = 6,
+		  .expect = (MLX_rsp){ .consumed = 6,
+		                       .lex =
 		                         {
 		                           .kind  = MLX_ERROR,
 		                           .value = "failed",
@@ -159,6 +212,7 @@ MunitResult test_kind(const MunitParameter params[],
 		MLX_kind ek    = exp.lex.kind;
 		void*    ev    = exp.lex.value;
 		int      es    = exp.lex.size;
+		int      bmax  = tests[i].bufmax;
 
 		int eoff  = exp.offset;
 		int econs = exp.consumed;
@@ -167,9 +221,8 @@ MunitResult test_kind(const MunitParameter params[],
 		           i, given, MLX_sym_name(ek), (ev ? ev : ""));
 
 		char tmp[80];
-		memset(tmp, '\0', 80);
 
-		MLX_rsp got = MLX_next(given, tmp, 80, max);
+		MLX_rsp got = MLX_next(given, tmp, bmax, max);
 
 		MLX_kind gk = got.lex.kind;
 		int      gs = got.lex.size;
@@ -190,13 +243,13 @@ MunitResult test_kind(const MunitParameter params[],
 			char buf[80];
 			memset(buf, '\0', 80);
 			int n = MLX_sym_string(buf, 80, got.lex);
-
 			munit_assert_int(n, <=, 80);
 			munit_assert_int(n, >, 0);
 			munit_logf(MUNIT_LOG_INFO, "  with value \"%s\"[%d]",
 			           buf, gs);
+
 			munit_assert_int(es, ==, gs);
-			munit_assert_memory_equal(es, gv, ev);
+			munit_assert_memory_equal(strlen(ev), gv, ev);
 		}
 	}
 
