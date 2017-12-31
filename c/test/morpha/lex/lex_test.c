@@ -217,8 +217,10 @@ MunitResult test_kind(const MunitParameter params[],
 		int eoff  = exp.offset;
 		int econs = exp.consumed;
 
+		char buf[80];
+		munit_assert_int(MLX_sym_string(buf, 80, exp.lex), <=, 80);
 		munit_logf(MUNIT_LOG_INFO, "test %d: given %s, expect %s(%s)",
-		           i, given, MLX_sym_name(ek), (ev ? ev : ""));
+		           i, given, MLX_sym_name(ek), buf);
 
 		char tmp[80];
 
@@ -244,7 +246,6 @@ MunitResult test_kind(const MunitParameter params[],
 			memset(buf, '\0', 80);
 			int n = MLX_sym_string(buf, 80, got.lex);
 			munit_assert_int(n, <=, 80);
-			munit_assert_int(n, >, 0);
 			munit_logf(MUNIT_LOG_INFO, "  with value \"%s\"[%d]",
 			           buf, gs);
 
