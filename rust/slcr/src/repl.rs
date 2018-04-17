@@ -26,6 +26,9 @@ use rlua::Lua;
 ///
 /// Passing was_lua=true causes the line to be interpreted as a Lua
 /// command, for multi-line input cases.
+///
+/// TODO: Express this as a method or function of some mutable state
+/// tracking device.
 pub fn next(
     m: &Morpha,
     vm: &Lua,
@@ -34,6 +37,7 @@ pub fn next(
     accum: &str,
     count: u32,
     was_lua: bool,
+    was_morpha: bool,
 ) -> (Result<MultiLine, String>, bool) {
     match line {
         // Got a line of input.
@@ -48,13 +52,17 @@ pub fn next(
             } else if line.starts_with(":l") {
                 // Begin a Lua block.
                 (lua::attempt_lua(&vm, line.split_at(2).1, count), true)
-            } else {
-                // It was a Morpha composition.
-                let c = Cursor::new(line);
+            } else if was_morpha {
+                // A Morpha composition was in progress.
                 (
-                    Ok(MultiLine::Done(format!("{:?}", m.lex(c).next().unwrap()))),
+                    Err(String::from("Multi-line Morpha not implemented")),
                     false,
                 )
+            } else {
+                // It was a new Morpha composition.
+                let c = Cursor::new(line);
+                let toks: Vec<_> = m.lex(c).collect();
+                (Ok(MultiLine::Done(format!("{:?}", toks))), false)
             }
         }
 

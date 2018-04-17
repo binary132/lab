@@ -39,6 +39,7 @@ fn main() {
             &accum,
             count,
             was_lua,
+            false,
         );
 
         was_lua = result.1;
