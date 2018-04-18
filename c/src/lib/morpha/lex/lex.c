@@ -13,6 +13,8 @@ const char* MLX_BLOCK_CLOSE_NAME = "MLX_BLOCK_CLOSE";
 const char* MLX_SCALAR_NAME      = "MLX_SCALAR";
 
 MLX_rsp MLX_next(const char* from, char* using, int max_scratch, int max_buf) {
+	// TODO: Enable trace mode
+	// TODO: Add "state machine"
 	MLX_kind k = MLX_NONE;
 	void*    v = NULL;
 	int      s = 0, i = 0;

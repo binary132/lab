@@ -25,17 +25,50 @@ int main(int argc, char* argv[]) {
 		sdsfree(buf);
 	}
 
-	fgets(buf, 80, stdin);
+	char* in = fgets(buf, 80, stdin);
+	if (in == NULL) {
+		return 0;
+	}
 
 	char tmp[80];
 	memset(tmp, '\0', 80);
-	MLX_rsp r = MLX_next(buf, tmp, 80, 80);
-	printf("%s\n", MLX_sym_name(r.lex.kind));
+	MLX_lexeme lexes[80];
 
-	if (r.lex.value) {
-	     char tmp2[80];
-	     MLX_sym_string(tmp2, 80, r.lex);
-	     printf("%s\n", tmp2);
+	int l = strlen(buf);
+	int j = 0; // Alloc buffer consumption
+	int n = 0; // Number of lexemes
+
+	for (int i = 0; i < l - 1 && j < 80;) {
+		// TODO: Move this into lex.c MLX_consume
+		MLX_rsp r = MLX_next(buf + i, tmp + j, 80 - j, 80 - i);
+		switch (r.lex.kind) {
+		case MLX_ERROR:
+			printf("Parse error: %s\n", (char*)(r.lex.value));
+			return 1;
+
+		case MLX_NONE:
+			break;
+
+		default:;
+		}
+
+		lexes[n++] = r.lex;
+		i += r.offset;
+		j += r.consumed;
+	}
+
+	char tmp2[80];
+
+	for (int i = 0; i < n; i++) {
+		MLX_lexeme l = lexes[i];
+		printf("%s", MLX_sym_name(l.kind));
+
+		if (l.value) {
+			MLX_sym_string(tmp2, 80, l);
+			printf("(%s)", tmp2);
+		}
+
+		printf("\n");
 	}
 
 	return 0;
