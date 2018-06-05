@@ -2,19 +2,17 @@ use std::io::BufRead;
 
 pub mod lex;
 
+use lex::lexer::Lexer;
+
 #[cfg(test)]
 mod lib_test;
 
 #[derive(Debug, PartialEq)]
-pub struct Morpha;
+pub struct Morpha<L: Lexer>(L);
 
-impl Morpha {
-    pub fn new() -> Self {
-        Morpha
-    }
-
-    /// lex consumes the next token from the given Reader.
-    pub fn lex<R: BufRead>(&self, r: R) -> lex::Lex<R> {
-        lex::Lex::from(r)
+impl<L: Lexer> Morpha<L> {
+    /// lex creates an iterator over the tokens of the BufRead.
+    pub fn lex<R: BufRead>(&mut self, r: R) -> lex::Lex<R, L> {
+        lex::Lex::from(r, &mut self.0)
     }
 }
