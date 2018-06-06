@@ -8,7 +8,7 @@ use lex::lexer::Lexer;
 mod lib_test;
 
 #[derive(Debug, PartialEq)]
-pub struct Morpha<L: Lexer>(L);
+pub struct Morpha<L: Lexer>(pub L);
 
 impl<L: Lexer> Morpha<L> {
     /// lex creates an iterator over the tokens of the BufRead.

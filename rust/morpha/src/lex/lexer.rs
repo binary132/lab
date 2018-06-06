@@ -1,4 +1,4 @@
-// TODO: pub trait Lexeme {}
+// TODO: pub trait Lexeme {}e
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Lexeme {
@@ -13,18 +13,18 @@ pub enum Partial<M, D> {
     Done(D),
 }
 
+use std::result;
+type Result = result::Result<Partial<Accum, Lexeme>, String>;
+
 pub trait Lexer {
     type Next;
 
     fn root() -> Self::Next;
-    fn next(&mut self, &[u8]) -> (Partial<Self::Next, Lexeme>, usize);
+    fn next(&mut self, &[u8]) -> (Self::Next, usize);
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Accum {
-    /// Err is an Accum which has encountered a bad Lexeme.
-    Err(String),
-
     /// Root is an Accum which hasn't yet begun to accumulate a Lexeme.
     Root,
 
@@ -39,48 +39,32 @@ impl Lexer for Accum {
         Accum::Root
     }
 
-    fn next(&mut self, from: &[u8]) -> (Partial<Self::Next, Lexeme>, usize) {
-        match match self {
-            Accum::Err(_) => return (Partial::More(self.clone()), 0),
+    fn next(&mut self, from: &[u8]) -> (Result, usize) {
+        match self {
             Accum::Root => begin_comp(from),
             Accum::Comp => continue_comp(from),
-        } {
-            (Partial::More(Accum::Err(e)), _) => {
-                (Partial::More(Accum::Err(e)), 0)
-            }
-            (Partial::Done(l), n) => (Partial::Done(l), n),
-            (Partial::More(a), n) => (Partial::More(a), n),
         }
     }
 }
 
-fn begin_comp(from: &[u8]) -> (Partial<Accum, Lexeme>, usize) {
+fn begin_comp(from: &[u8]) -> (Result, usize) {
     match from[0] as char {
-        '{' => (Partial::Done(Lexeme::BlockOpen), 0),
-        _ => (
-            Partial::More(Accum::Err(
-                "Composition must begin with BlockOpen".to_string(),
-            )),
-            0,
-        ),
+        '{' => (Ok(Partial::Done(Lexeme::BlockOpen)), 1),
+        _ => (Err("must begin with BlockOpen".to_string()), 0),
     }
 }
 
-fn continue_comp(from: &[u8]) -> (Partial<Accum, Lexeme>, usize) {
+fn continue_comp(from: &[u8]) -> (Result, usize) {
+    let mut n = 0;
+
     for ch in from {
-        match *ch as char {
-            '}' => return (Partial::Done(Lexeme::BlockClose), 1),
-            _ => {
-                return (
-                    Partial::More(Accum::Err(format!("Unknown lexeme {}", ch))),
-                    0,
-                )
-            }
+        if *ch as char == '}' {
+            return (Ok(Partial::Done(Lexeme::BlockClose)), n);
+            // _ => return (Err(format!("Unknown lexeme {}", ch)), n),
         }
+
+        n += 1;
     }
 
-    (
-        Partial::More(Accum::Err("Unknown lexeme".to_string())),
-        0,
-    )
+    (Err("Unknown lexeme".to_string()), 0)
 }
