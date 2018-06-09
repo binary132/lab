@@ -11,15 +11,14 @@ use self::lexer::{Lexeme, Lexer, Partial};
 /// ahead until the end of the Reader source.  If an error occurred
 /// during read, or while parsing UTF-8, it will be set in the `err`
 /// field and no further read or tokenizing will be possible.
-#[derive(Debug)]
-pub struct Lex<'a, R: BufRead> {
+pub struct Lex<'a, R: BufRead, L: 'a + Lexer> {
     done: bool,
     tokens: VecDeque<Lexeme>,
     r: R,
-    state: Box<&'a mut Lexer>,
+    state: &'a mut L,
 }
 
-impl<'a, R: BufRead, L: 'a + Lexer> Iterator for Lex<'a, R, L> {
+impl<'a, R: BufRead, L: Lexer> Iterator for Lex<'a, R, L> {
     type Item = Result<lexer::Lexeme>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -36,14 +35,14 @@ impl<'a, R: BufRead, L: 'a + Lexer> Iterator for Lex<'a, R, L> {
     }
 }
 
-impl<'a, R: BufRead, L: 'a + Lexer> Lex<'a, R, L> {
+impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
     // TODO: Deal with incomplete Lexemes / BufRead
     pub fn from(r: R, l: &'a mut L) -> Self {
         Lex {
             done: false,
             tokens: VecDeque::new(),
             r: r,
-            state: Box::new(l),
+            state: l,
         }
     }
 
@@ -51,6 +50,7 @@ impl<'a, R: BufRead, L: 'a + Lexer> Lex<'a, R, L> {
     // fills "into" with Lexemes from it.
     fn read_more(&mut self) -> Result<()> {
         let mut count = 0;
+        let mut state = self.state.clone();
         {
             let mut buf = self.r.fill_buf()?;
             if buf.len() == 0 {
@@ -58,44 +58,40 @@ impl<'a, R: BufRead, L: 'a + Lexer> Lex<'a, R, L> {
                 return Ok(());
             }
 
-            let mut state = self.state;
-
             while count < buf.len() {
-                let (state, n) = state.next(&buf[count..]);
+                let (next, n) = match state.next(&buf[count..]) {
+                    (Err(e), _) => {
+                        return Err(Error::new(ErrorKind::InvalidData, e))
+                    }
 
-                match state {
-                    // Bad lexeme.
-                    Err(e) => return Err(Error::new(ErrorKind::InvalidData, e)),
-
-                    // Incomplete lexeme at the end.  Read more, unless EOF.
-                    Ok(Partial::More(a)) => {
+                    // Incomplete lexeme at the end.  Read more, or EOF.
+                    (Ok(Partial::More(a)), n) => {
                         let bb = self.r.fill_buf()?;
                         if bb.len() == 0 {
                             self.done = true;
-                            // TODO: Store next lexer step.
-                            self.state = Box::new(a);
+                            *self.state = a;
                             return Err(Error::from(ErrorKind::UnexpectedEof));
                         }
+
+                        buf = bb;
+
+                        (a, n)
                     }
 
-                    // Complete lexeme.
-                    Ok(Partial::Done(l)) => self.tokens.push_back(l),
-                }
+                    // Complete lexeme.  Go back to previous state.
+                    (Ok(Partial::Done(a, l)), n) => {
+                        self.tokens.push_back(l);
+                        (a, n)
+                    }
+                };
+
                 count += n;
+                state = next;
             }
         }
         self.r.consume(count);
+        *self.state = state;
 
-        Ok(())
-    }
-
-    fn append(buf: &mut [u8], r: R) -> Result<()> {
-        let bb = r.fill_buf()?;
-        if bb.len() == 0 {
-            return Err(Error::from(ErrorKind::UnexpectedEof));
-        }
-
-        buf.concat(bb);
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-// TODO: pub trait Lexeme {}e
+// TODO: pub trait Lexeme {}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Lexeme {
@@ -10,17 +10,15 @@ pub enum Lexeme {
 
 pub enum Partial<M, D> {
     More(M),
-    Done(D),
+    Done(M, D),
 }
 
 use std::result;
-type Result = result::Result<Partial<Accum, Lexeme>, String>;
+type Result<T> = result::Result<Partial<T, Lexeme>, String>;
 
-pub trait Lexer {
-    type Next;
-
-    fn root() -> Self::Next;
-    fn next(&mut self, &[u8]) -> (Self::Next, usize);
+pub trait Lexer: Sized + Clone {
+    fn root(self) -> Self;
+    fn next(self, &[u8]) -> (Result<Self>, usize);
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,37 +28,44 @@ pub enum Accum {
 
     /// Comp is a composition.
     Comp,
+
+    /// Fin is the end of a composition.  No further input is valid.
+    Fin,
 }
 
 impl Lexer for Accum {
-    type Next = Accum;
-
-    fn root() -> Self {
+    fn root(self) -> Self {
         Accum::Root
     }
 
-    fn next(&mut self, from: &[u8]) -> (Result, usize) {
+    fn next(self, from: &[u8]) -> (Result<Self>, usize) {
         match self {
             Accum::Root => begin_comp(from),
             Accum::Comp => continue_comp(from),
+            Accum::Fin => (Err("Comp finished".to_string()), 0),
         }
     }
 }
 
-fn begin_comp(from: &[u8]) -> (Result, usize) {
+fn begin_comp(from: &[u8]) -> (Result<Accum>, usize) {
     match from[0] as char {
-        '{' => (Ok(Partial::Done(Lexeme::BlockOpen)), 1),
+        '{' => (
+            Ok(Partial::Done(Accum::Comp, Lexeme::BlockOpen)),
+            1,
+        ),
         _ => (Err("must begin with BlockOpen".to_string()), 0),
     }
 }
 
-fn continue_comp(from: &[u8]) -> (Result, usize) {
+fn continue_comp(from: &[u8]) -> (Result<Accum>, usize) {
     let mut n = 0;
 
     for ch in from {
         if *ch as char == '}' {
-            return (Ok(Partial::Done(Lexeme::BlockClose)), n);
-            // _ => return (Err(format!("Unknown lexeme {}", ch)), n),
+            return (
+                Ok(Partial::Done(Accum::Fin, Lexeme::BlockClose)),
+                n,
+            );
         }
 
         n += 1;
