@@ -51,47 +51,85 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
     fn read_more(&mut self) -> Result<()> {
         let mut count = 0;
         let mut state = self.state.clone();
+
+        // Loop:
+        //   Read and borrow some more from self.r
+        //   If it's EOF, None and set done to true.
+        //   If we've consumed the whole buffer, recur
+        //   Ingest more until empty or Partial::More
+        //   Store state in case we return
+        //   When done,
+
+        // Note that calling fill_buf repeatedly doesn't result in a
+        // syscall every time.
+
+        let mut consumed = 0;
         {
-            let mut buf = self.r.fill_buf()?;
+            let buf = self.r.fill_buf()?;
             if buf.len() == 0 {
                 self.done = true;
                 return Ok(());
             }
 
-            while count < buf.len() {
-                let (next, n) = match state.next(&buf[count..]) {
+            while consumed < buf.len() {
+                // Consume from this buffer until we run out of input.
+                let (next, n) = match state.next(&buf[consumed..]) {
                     (Err(e), _) => {
                         return Err(Error::new(ErrorKind::InvalidData, e))
                     }
 
-                    // Incomplete lexeme at the end.  Read more, or EOF.
                     (Ok(Partial::More(a)), n) => {
-                        let bb = self.r.fill_buf()?;
-                        if bb.len() == 0 {
-                            self.done = true;
-                            *self.state = a;
-                            return Err(Error::from(ErrorKind::UnexpectedEof));
-                        }
-
-                        buf = bb;
-
+                        *self.state = a.clone();
                         (a, n)
                     }
 
-                    // Complete lexeme.  Go back to previous state.
                     (Ok(Partial::Done(a, l)), n) => {
                         self.tokens.push_back(l);
                         (a, n)
                     }
                 };
 
-                count += n;
+                consumed += n;
                 state = next;
             }
         }
-        self.r.consume(count);
-        *self.state = state;
+
+        self.r.consume(consumed);
 
         Ok(())
+
+        //     while count < buf.len() {
+        // 	// Either we get a next and count,
+        //         let (next, n) = match state.next(&buf[count..]) {
+
+        //             // Incomplete lexeme at the end.  Read more, or EOF.
+        //             (Ok(Partial::More(a)), n) => {
+        //                 let bb = self.r.fill_buf()?;
+        //                 if bb.len() == 0 {
+        //                     self.done = true;
+        //                     *self.state = a;
+        //                     return Err(Error::from(ErrorKind::UnexpectedEof));
+        //                 }
+
+        //                 buf = bb;
+
+        //                 (a, n)
+        //             }
+
+        //             // Complete lexeme.  Go back to previous state.
+        //             (Ok(Partial::Done(a, l)), n) => {
+        //                 self.tokens.push_back(l);
+        //                 (a, n)
+        //             }
+        //         };
+
+        //         count += n;
+        //         state = next;
+        //     }
+        // }
+        // self.r.consume(count);
+        // *self.state = state;
+
+        // Ok(())
     }
 }
