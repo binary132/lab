@@ -1,6 +1,6 @@
 extern crate morpha;
 
-use morpha::{lex::lexer::{Accum, Lexeme, Lexer},
+use morpha::{lex::lexer::{Accum, Lexeme},
              Morpha};
 use std::io::Result;
 
@@ -15,7 +15,7 @@ fn main() {
         let r = r.lock();
 
         // We're going to consume the input until the composition end.
-        let mut m = Morpha(Accum::root());
+        let mut m = Morpha(Accum::Root);
 
         let lex: Result<Vec<Lexeme>> = m.lex(r).collect();
         println!("{:?}", lex);

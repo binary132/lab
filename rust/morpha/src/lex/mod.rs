@@ -18,6 +18,11 @@ pub struct Lex<'a, R: BufRead, L: 'a + Lexer> {
     state: &'a mut L,
 }
 
+enum IsEOF {
+    Yes,
+    No,
+}
+
 impl<'a, R: BufRead, L: Lexer> Iterator for Lex<'a, R, L> {
     type Item = Result<lexer::Lexeme>;
 
@@ -27,7 +32,12 @@ impl<'a, R: BufRead, L: Lexer> Iterator for Lex<'a, R, L> {
 
             (_, 0) => match self.read_more() {
                 Err(e) => Some(Err(e)),
-                _ => Some(Ok(self.tokens.pop_front()?)),
+
+                // Not EOF yet.
+                Ok(IsEOF::No) => Some(Ok(self.tokens.pop_front()?)),
+
+                // EOF.
+                Ok(IsEOF::Yes) => None,
             },
 
             (_, _) => Some(Ok(self.tokens.pop_front()?)),
@@ -46,29 +56,35 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
         }
     }
 
+    pub fn more(self, r: R) -> Self {
+        Lex {
+            done: self.done,
+            tokens: self.tokens,
+            r: r,
+            state: self.state,
+        }
+    }
+
     // read_more consumes another buffer's worth from the BufReader and
-    // fills "into" with Lexemes from it.
-    fn read_more(&mut self) -> Result<()> {
-        let mut count = 0;
+    // fills "into" with Lexemes from it.  If EOF, it returns true.
+    fn read_more(&mut self) -> Result<IsEOF> {
+        let mut consumed = 0;
         let mut state = self.state.clone();
 
         // Loop:
-        //   Read and borrow some more from self.r
-        //   If it's EOF, None and set done to true.
+        //   Read if necessary, and borrow buffer from self.r
+        //   In case of EOF, None and set done to true.
         //   If we've consumed the whole buffer, recur
         //   Ingest more until empty or Partial::More
         //   Store state in case we return
-        //   When done,
 
-        // Note that calling fill_buf repeatedly doesn't result in a
-        // syscall every time.
-
-        let mut consumed = 0;
         {
+            // Note that calling fill_buf repeatedly doesn't result in a
+            // syscall every time.
             let buf = self.r.fill_buf()?;
             if buf.len() == 0 {
                 self.done = true;
-                return Ok(());
+                return Ok(IsEOF::Yes);
             }
 
             while consumed < buf.len() {
@@ -78,10 +94,8 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
                         return Err(Error::new(ErrorKind::InvalidData, e))
                     }
 
-                    (Ok(Partial::More(a)), n) => {
-                        *self.state = a.clone();
-                        (a, n)
-                    }
+                    // (Err("Comp finished".to_string()), _) => return Ok(IsEOF::Yes),
+                    (Ok(Partial::More(a)), n) => (a, n),
 
                     (Ok(Partial::Done(a, l)), n) => {
                         self.tokens.push_back(l);
@@ -94,42 +108,9 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
             }
         }
 
+        *self.state = state;
         self.r.consume(consumed);
 
-        Ok(())
-
-        //     while count < buf.len() {
-        // 	// Either we get a next and count,
-        //         let (next, n) = match state.next(&buf[count..]) {
-
-        //             // Incomplete lexeme at the end.  Read more, or EOF.
-        //             (Ok(Partial::More(a)), n) => {
-        //                 let bb = self.r.fill_buf()?;
-        //                 if bb.len() == 0 {
-        //                     self.done = true;
-        //                     *self.state = a;
-        //                     return Err(Error::from(ErrorKind::UnexpectedEof));
-        //                 }
-
-        //                 buf = bb;
-
-        //                 (a, n)
-        //             }
-
-        //             // Complete lexeme.  Go back to previous state.
-        //             (Ok(Partial::Done(a, l)), n) => {
-        //                 self.tokens.push_back(l);
-        //                 (a, n)
-        //             }
-        //         };
-
-        //         count += n;
-        //         state = next;
-        //     }
-        // }
-        // self.r.consume(count);
-        // *self.state = state;
-
-        // Ok(())
+        Ok(IsEOF::No)
     }
 }
