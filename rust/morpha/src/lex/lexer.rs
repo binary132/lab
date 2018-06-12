@@ -5,11 +5,13 @@ pub enum Lexeme {
     BlockOpen,
     BlockClose,
     Name(String),
+    Fin,
 }
 
 pub enum Partial<M, D> {
     More(M),
     Done(M, D),
+    Fin(M, D),
 }
 
 use std::result;
@@ -84,13 +86,13 @@ fn continue_comp(from: &[u8], depth: u32) -> (Result<Accum>, usize) {
 
             '}' => {
                 return (
-                    Ok(Partial::Done(
+                    Ok({
+                        let l = Lexeme::BlockClose;
                         match depth {
-                            0 => Accum::Fin,
-                            _ => Accum::Comp(depth - 1),
-                        },
-                        Lexeme::BlockClose,
-                    )),
+                            0 => Partial::Fin(Accum::Fin, l),
+                            _ => Partial::Done(Accum::Comp(depth - 1), l),
+                        }
+                    }),
                     n + 1,
                 )
             }

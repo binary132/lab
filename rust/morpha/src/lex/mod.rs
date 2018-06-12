@@ -34,13 +34,19 @@ impl<'a, R: BufRead, L: Lexer> Iterator for Lex<'a, R, L> {
                 Err(e) => Some(Err(e)),
 
                 // Not EOF yet.
-                Ok(IsEOF::No) => Some(Ok(self.tokens.pop_front()?)),
+                Ok(IsEOF::No) => match self.tokens.pop_front() {
+                    Some(t) => Some(Ok(t)),
+                    None => None,
+                },
 
                 // EOF.
                 Ok(IsEOF::Yes) => None,
             },
 
-            (_, _) => Some(Ok(self.tokens.pop_front()?)),
+            (_, _) => match self.tokens.pop_front() {
+                Some(t) => Some(Ok(t)),
+                None => None,
+            },
         }
     }
 }
@@ -70,6 +76,7 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
     fn read_more(&mut self) -> Result<IsEOF> {
         let mut consumed = 0;
         let mut state = self.state.clone();
+        let mut done = false;
 
         // Loop:
         //   Read if necessary, and borrow buffer from self.r
@@ -87,7 +94,7 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
                 return Ok(IsEOF::Yes);
             }
 
-            while consumed < buf.len() {
+            while !done && consumed < buf.len() {
                 // Consume from this buffer until we run out of input.
                 let (next, n) = match state.next(&buf[consumed..]) {
                     (Err(e), _) => {
@@ -99,6 +106,13 @@ impl<'a, R: BufRead, L: Lexer> Lex<'a, R, L> {
 
                     (Ok(Partial::Done(a, l)), n) => {
                         self.tokens.push_back(l);
+                        (a, n)
+                    }
+
+                    (Ok(Partial::Fin(a, l)), n) => {
+                        self.tokens.push_back(l);
+                        self.tokens.push_back(Lexeme::Fin);
+                        done = true;
                         (a, n)
                     }
                 };

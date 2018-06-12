@@ -14,6 +14,7 @@ fn lex_test() {
             Lexeme::BlockOpen,
             Lexeme::Name("hello".to_string()),
             Lexeme::BlockClose,
+            Lexeme::Fin,
         ],
     }] {
         let result: Result<Vec<Lexeme>> =
