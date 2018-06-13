@@ -132,14 +132,19 @@ impl Name {
             }
         }
 
-        self.acc
-            .push_str(str::from_utf8(&from[0..n]).unwrap());
-        (
-            Ok(Partial::Done(
-                *self.prev,
-                Lexeme::Name(self.acc),
-            )),
-            n,
-        )
+        match str::from_utf8(&from[0..n]) {
+            Err(e) => (Err(e.to_string()), 0),
+            Ok(s) => {
+                self.acc.push_str(s);
+
+                (
+                    Ok(Partial::Done(
+                        *self.prev,
+                        Lexeme::Name(self.acc),
+                    )),
+                    n,
+                )
+            }
+        }
     }
 }
