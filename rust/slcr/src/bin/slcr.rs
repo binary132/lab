@@ -5,11 +5,11 @@ extern crate morpha;
 extern crate rlua;
 extern crate rustyline;
 
+use morpha::{lex::accum::Accum, Morpha};
 use slcr::{loader, repl, MultiLine};
-use morpha::Morpha;
 
-use rustyline::Editor;
 use rlua::Lua;
+use rustyline::Editor;
 
 const HISTFILE: &str = ".repl_history";
 
@@ -25,14 +25,14 @@ fn main() {
     }
 
     let mut count = 0;
-    let mut accum = String::from("");
+    let mut accum = String::new();
     let mut prompt = "Λ ";
     let mut was_lua = false;
-    let morpha = Morpha::new();
+    let mut morpha = Morpha(Accum::Root);
 
     loop {
         let result = repl::next(
-            &morpha,
+            &mut morpha,
             &vm,
             ed.readline(prompt),
             ed.get_history(),

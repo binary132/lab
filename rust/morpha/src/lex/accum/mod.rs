@@ -1,26 +1,4 @@
-// TODO: pub trait Lexeme {}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Lexeme {
-    BlockOpen,
-    BlockClose,
-    Name(String),
-    Fin,
-}
-
-pub enum Partial<M, D> {
-    More(M),
-    Done(M, D),
-    Fin(M, D),
-}
-
-use std::result;
-type Result<T> = result::Result<Partial<T, Lexeme>, String>;
-
-pub trait Lexer: Sized + Clone {
-    fn root(self) -> Self;
-    fn next(self, &[u8]) -> (Result<Self>, usize);
-}
+use super::{Lexeme, Lexer, Partial, SResult as Result};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Accum {
@@ -148,3 +126,6 @@ impl Name {
         }
     }
 }
+
+#[cfg(test)]
+mod mod_test;

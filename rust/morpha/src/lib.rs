@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 pub mod lex;
 
-use lex::lexer::Lexer;
+use lex::Lexer;
 
 #[cfg(test)]
 mod lib_test;

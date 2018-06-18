@@ -4,8 +4,30 @@ use std::io::{BufRead, Error, ErrorKind, Result};
 #[cfg(test)]
 mod mod_test;
 
-pub mod lexer;
-use self::lexer::{Lexeme, Lexer, Partial};
+pub mod accum;
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Lexeme {
+    BlockOpen,
+    BlockClose,
+    Name(String),
+    Fin,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Partial<M, D> {
+    More(M),
+    Done(M, D),
+    Fin(M, D),
+}
+
+use std::result::Result as StdResult;
+type SResult<T> = StdResult<Partial<T, Lexeme>, String>;
+
+pub trait Lexer: Sized + Clone {
+    fn root(self) -> Self;
+    fn next(self, &[u8]) -> (SResult<Self>, usize);
+}
 
 /// Lex implements Iterator over the underlying BufRead.  It may read
 /// ahead until the end of the Reader source.  If an error occurred
@@ -24,7 +46,7 @@ enum IsEOF {
 }
 
 impl<'a, R: BufRead, L: Lexer> Iterator for Lex<'a, R, L> {
-    type Item = Result<lexer::Lexeme>;
+    type Item = Result<Lexeme>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match (self.done, self.tokens.len()) {

@@ -1,7 +1,7 @@
 #[test]
 fn lex_test() {
     use super::Morpha;
-    use lex::lexer::{Accum, Lexeme};
+    use lex::{accum::Accum, Lexeme};
     use std::io::{BufRead, Cursor, Result};
 
     struct Test {

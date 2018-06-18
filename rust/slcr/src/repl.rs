@@ -1,11 +1,11 @@
 extern crate rlua;
 extern crate rustyline;
 
-use std::io::Cursor;
+use std::io::{Cursor, Result as IOResult};
 
 use super::{lua, MultiLine};
 
-use morpha::Morpha;
+use morpha::{lex::Lexer, Morpha};
 
 use rustyline::error::ReadlineError;
 use rustyline::history::History;
@@ -29,8 +29,8 @@ use rlua::Lua;
 ///
 /// TODO: Express this as a method or function of some mutable state
 /// tracking device.
-pub fn next(
-    m: &Morpha,
+pub fn next<L: Lexer>(
+    m: &mut Morpha<L>,
     vm: &Lua,
     line: Result<String, ReadlineError>,
     hist: &mut History,
@@ -51,18 +51,24 @@ pub fn next(
                 )
             } else if line.starts_with(":l") {
                 // Begin a Lua block.
-                (lua::attempt_lua(&vm, line.split_at(2).1, count), true)
+                (
+                    lua::attempt_lua(&vm, line.split_at(2).1, count),
+                    true,
+                )
             } else if was_morpha {
                 // A Morpha composition was in progress.
                 (
-                    Err(String::from("Multi-line Morpha not implemented")),
+                    Err("Multi-line Morpha not implemented".to_string()),
                     false,
                 )
             } else {
                 // It was a new Morpha composition.
                 let c = Cursor::new(line);
-                let toks: Vec<_> = m.lex(c).collect();
-                (Ok(MultiLine::Done(format!("{:?}", toks))), false)
+                let toks: IOResult<Vec<_>> = m.lex(c).collect();
+                (
+                    Ok(MultiLine::Done(format!("{:?}", toks))),
+                    false,
+                )
             }
         }
 
@@ -74,15 +80,23 @@ pub fn next(
                 // Try to evaluate what we have so far, but if it asks
                 // for more then finish up.
                 match lua::attempt_lua(&vm, accum, count) {
-                    Ok(MultiLine::More(_)) => {
-                        (Ok(MultiLine::Done(String::from("incomplete input"))), false)
-                    }
+                    Ok(MultiLine::More(_)) => (
+                        Ok(MultiLine::Done(String::from(
+                            "incomplete input",
+                        ))),
+                        false,
+                    ),
 
                     // Otherwise return whatever came back.
                     v => (v, false),
                 }
             } else {
-                (Ok(MultiLine::Done(String::from("incomplete input"))), false)
+                (
+                    Ok(MultiLine::Done(String::from(
+                        "incomplete input",
+                    ))),
+                    false,
+                )
             }
         }
 
@@ -90,7 +104,10 @@ pub fn next(
         Err(ReadlineError::Interrupted) => (Err(format!("C-c")), false),
 
         // Something went wrong.
-        Err(error) => (Err(format!("Something went wrong: {}", error)), false),
+        Err(error) => (
+            Err(format!("Something went wrong: {}", error)),
+            false,
+        ),
     }
 }
 

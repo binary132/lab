@@ -4,7 +4,7 @@ extern crate morpha;
 mod test {
     #[test]
     fn hello_test() {
-        use morpha::{lex::lexer::{Accum, Lexeme},
+        use morpha::{lex::{accum::Accum, Lexeme},
                      Morpha};
         use std::io::{Cursor, Result};
 

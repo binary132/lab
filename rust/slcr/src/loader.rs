@@ -1,8 +1,6 @@
 use super::rlua;
 // use super::includedir;
 
-use std::str;
-
 include!(concat!(env!("OUT_DIR"), "/data.rs"));
 
 /// Loads all libraries in the data path.
@@ -19,6 +17,8 @@ pub fn load_all(vm: &rlua::Lua) -> Result<(), String> {
 /// Attempts to load the bindata with the given filename into the given
 /// rlua::Lua vm.
 pub fn load_lib(vm: &rlua::Lua, lib: &str) -> Result<(), String> {
+    use std::str;
+
     let lbs = FILES
         .get(lib)
         .expect("failed to get binary data")
@@ -37,8 +37,6 @@ pub fn load_lib(vm: &rlua::Lua, lib: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod test {
-    #[test]
-    fn test_load_lib() {
-        assert_eq!(2, 2);
-    }
+    // #[test]
+    // fn test_load_lib() {}
 }

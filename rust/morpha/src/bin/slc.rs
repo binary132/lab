@@ -1,6 +1,6 @@
 extern crate morpha;
 
-use morpha::{lex::lexer::{Accum, Lexeme},
+use morpha::{lex::{accum::Accum, Lexeme},
              Morpha};
 use std::io::Result;
 
