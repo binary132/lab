@@ -50,10 +50,10 @@ MunitResult test_sym_name(const MunitParameter params[],
 		           ek, es);
 
 		const char* result = MLX_sym_name(tests[i].given);
-		int         gotlen = strlen(result);
+		size_t      gotlen = strlen(result);
 
 		munit_logf(MUNIT_LOG_INFO, "  got \"%s\"[%d]", result, gotlen);
-		munit_assert_int(gotlen, ==, strlen(tests[i].expect));
+		munit_assert_size(gotlen, ==, strlen(tests[i].expect));
 		munit_assert_memory_equal(gotlen, result, tests[i].expect);
 	}
 

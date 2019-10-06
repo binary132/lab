@@ -8,8 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(Spartan_TARGET_DIR ${CMAKE_BINARY_DIR}/target)
 set(Spartan_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
-enable_testing()
-
 set(APPLICATION_NAME slc)
 
 set(APP_V_MAJ "0")
@@ -21,6 +19,9 @@ set(APP_V "${APP_V_MAJ}.${APP_V_MIN}.${APP_V_PATCH}")
 # Where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
 # is checked.
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+
+include(CTest)
+enable_testing()
 
 # disallow in-source build
 include(MacroEnsureOutOfSourceBuild)

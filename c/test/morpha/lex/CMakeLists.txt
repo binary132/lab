@@ -2,11 +2,6 @@ project(Spartan C)
 
 add_executable(lex_test main_test.h main_test.c lex_test.c)
 
-target_include_directories(lex_test PUBLIC
-  ${lex_INCLUDE_DIR}
-  ${munit_INCLUDE_DIR}
-)
-
 target_link_libraries(lex_test lex munit)
 
 set_target_properties(lex_test PROPERTIES
