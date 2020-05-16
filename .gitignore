@@ -16,6 +16,7 @@
 # Visual Studio / VS Code project files
 .vs/
 .vscode/
+build_msvc*
 
 # Emacs temp files
 *~
